@@ -1,0 +1,143 @@
+---
+import SideBar from "../components/react-components/sidebar/SideBar"
+
+const {frontmatter} = Astro.props;
+let isOpen = false;
+
+const toggleSidebar = () => {
+  isOpen = !isOpen;
+};
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{frontmatter.title}</title>
+  <style>
+    :root {
+      --accent: 136, 58, 234;
+      --accent-light: 224, 204, 250;
+      --accent-dark: 49, 10, 101;
+      --accent-gradient: linear-gradient(
+        45deg,
+        rgb(var(--accent)),
+        rgb(var(--accent-light)) 30%,
+        white 60%
+      );
+    }
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: rgba(var(--accent-dark), 0.1);
+      color: rgb(var(--accent-dark));
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      height: 100%;
+    }
+    header {
+      background: #13151a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      /* padding: 1rem; */
+      text-align: center;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      transition: height 0.3s, padding 0.3s;
+      z-index: 1000;
+    }
+
+    .title-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .title-content h1 {
+      margin: 5px;
+    }
+    header.shrink {
+      height: 50px;
+    }
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      transition: opacity 0.3s;
+      text-align: center;
+    }
+    header.shrink .header-content {
+      opacity: 0;
+    }
+
+    .header-content p {
+      margin: 0;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 7rem auto 2rem; /* Ajusta el margen superior para que el contenido no quede oculto por el header */
+      padding: 1rem;
+      background: white;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      transition: margin-top 0.3s;
+    }
+    code {
+      font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
+      background: rgba(var(--accent-light), 0.3);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+    footer {
+      text-align: center;
+      background: #13151a;
+      color: white;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      transition: bottom 0.3s;
+    }
+    footer.shrink {
+      bottom: 50px; /* Ajusta este valor según sea necesario */
+    }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <div class="title-content">
+      <h1>{frontmatter.title}</h1>
+    </div>
+    <div class="header-content">
+      <p>Autor: {frontmatter.author}</p>
+      <p>{frontmatter.description}</p>
+    </div>
+  </header>
+  <main id="main-content">
+    <SideBar client:visible />
+    <a href="/">Init</a> 
+    <slot />
+  </main>
+  <footer id="footer">
+    <p>&copy; {new Date().getFullYear()} - Todos los derechos reservados.</p>
+  </footer>
+  <script>
+    window.addEventListener('scroll', function() {
+      const header = document.getElementById('header');
+      const mainContent = document.getElementById('main-content');
+      const footer = document.getElementById('footer');
+      const isRef = header && mainContent && footer;
+      if (!isRef) return;
+      if (window.scrollY > 50) { // Ajusta el valor según sea necesario
+        header?.classList.add('shrink');
+        // footer?.classList.add('shrink');
+        mainContent.style.marginTop = '7rem'; // Ajusta este valor según sea necesario
+        mainContent.style.paddingBottom = '3rem'; // Ajusta este valor según sea necesario
+      } else {
+        header?.classList.remove('shrink');
+        mainContent.style.marginTop = '7rem'; // Ajusta este valor según sea necesario
+      }
+    });
+  </script>
+</body>
+</html>
