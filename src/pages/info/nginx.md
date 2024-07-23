@@ -5,44 +5,72 @@ author: Jean Reyes
 description: instrucciones para configurar servidor
 ---
 
-## Configuración nginx
-
-## 👀 Login e instalar nginx
-
-1. acceder por ssh a la IP del servidor 
-```sh 
-ssh root@your_droplet_ip
-```
-2. actualizar paquetes 
-```sh 
-sudo apt update -y
-```
-3. instalar nginx 
-```sh 
-sudo apt install nginx -y
-```
-4. y permitir trafico 
- ```sh 
- sudo ufw allow 'Nginx Full'
- ```
-
 ## 👀 Config nginx
 
-1. crear archivo de configuración para nuevo sitio
+crear archivo de configuración para nuevo sitio dependiendo si es estatico con con proxy-pass
 ```sh 
 sudo nano /etc/nginx/sites-available/docs.nes-sgd.cl
 ```
-ej:
-```text
+ej estatico:
+```sh
 server {
     listen 80;
     server_name docs.nes-sgd.cl;
 
-    root /var/www/docs.nes-sgd.cl;  # Apunta a un directorio, no a un archivo
+    root /var/www/docs.nes-sgd.cl;
     index index.html;
 
     location / {
-        try_files $uri $uri/ /index.html;  # Intenta servir el archivo index.html si no se encuentra la URI
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+ej proxy-pass
+v.1
+```sh
+server {
+    listen 80;
+    server_name docs.nes-sgd.cl;
+
+    location / {
+        proxy_pass http://localhost:4321; 
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+v.2 
+
+```sh 
+server {
+    listen 4320;
+    server_name _;
+
+    location / {
+        proxy_pass http://localhost:4321;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        send_timeout 60s;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
     }
 }
 ```
@@ -63,17 +91,22 @@ sudo tail -f /var/log/nginx/error.log
 sudo nginx -t
 ```
 
-## 👀  Cargar nuevo sistio.
+## 👀  Cargar nuevo sistio
 
 1. cd /var/www 
 ```sh 
 mkdir chimbarongo.nes-sgd.cl
 ```
-
-2. trasladar proyecto desde MI maquina: 
+trasladar proyecto desde MI maquina: 
 ```sh 
 scp -r /Users/jereyesal/Desktop/PROJECT/var:www/ASTRO/pro-info root@64.227.2.167:/var/www/docs.nes-sgd.cl
 ```
+
+2. clonar repositorio desde git:
+```sh
+sudo apt install git -y
+```
+si no, ejecutar docker compose
 
 # 👀 Resumen del Proceso Completo
 ```text
@@ -121,74 +154,8 @@ scp -r /Users/jereyesal/Desktop/PROJECT/var:www/ASTRO/pro-info root@64.227.2.167
 3. ejecutar `npm run build`, para compilar la app,
 
 4. actualizar archivos nginx.conf en 'sites-available', seguir pasos de arriba
-```sh
-v.1
-server {
-    listen 80;
-    server_name docs.nes-sgd.cl;
 
-    location / {
-        proxy_pass http://localhost:4321;  # Asegúrate de que el puerto sea el correcto para tu aplicación
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-v.2 
-
-```sh 
-server {
-    listen 4320;
-    server_name _;
-
-    location / {
-        proxy_pass http://localhost:4321;  # Cambia 3000 por el puerto correcto de tu aplicación
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-        send_timeout 60s;
-    }
-
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root /usr/share/nginx/html;
-    }
-}
-```
-## 👀 Opcional
-
-5. opcional se puede instalar `npm install pm2 -g` para manejar reinicios
-6. arrancar app `pm2 start npm --name "docs.nes-sgd.cl" -- run start`, debes etsar en la carpeta del proyecto
-
-7. para que sistema arranque `pm2 startup`, el comando proporciona un path target: `sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root`
-8. guardar estado actual `pm2 save`
-
-
-## 👀 comando extra
-1. eliminar archivo de droplet `sudo rm nombre_del_archivo`
-2. eliminar archivo de pm2 `pm2 delete nombre_del_archivo`
-3. restar nginx `sudo systemctl restart nginx`, pm2 `pm2 restart`
-
-## CICD
-
-dar permisos 
-`chmod +x deploy.sh`
-./deploy.sh
-
-#!/bin/bash
+## deploy.sh
 
 # Define variables
 APP_DIR="/var/www/docs.nes-sgd.cl/info-pro"
@@ -233,7 +200,7 @@ fi
 
 echo "Deployment completed successfully!"
 
-# nginx proxy manager
+## nginx proxy manager
 
 version: '3.8'
 services:
@@ -268,4 +235,47 @@ services:
       MARIADB_AUTO_UPGRADE: '1'
     volumes:
       - ./mysql:/var/lib/mysql
+
+
+## 👀 Login e instalar nginx
+
+1. acceder por ssh a la IP del servidor 
+```sh 
+ssh root@your_droplet_ip
+ssh root@142.93.4.148
+d2359bf7e45983079930f564c9
+```
+2. actualizar paquetes 
+```sh 
+sudo apt update -y
+```
+3. instalar nginx 
+```sh 
+sudo apt install nginx -y
+```
+4. y permitir trafico 
+ ```sh 
+ sudo ufw allow 'Nginx Full'
+ ```
+
+## 👀 Opcional
+
+5. opcional se puede instalar `npm install pm2 -g` para manejar reinicios
+6. arrancar app `pm2 start npm --name "docs.nes-sgd.cl" -- run start`, debes etsar en la carpeta del proyecto
+
+7. para que sistema arranque `pm2 startup`, el comando proporciona un path target: `sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root`
+8. guardar estado actual `pm2 save`
+
+
+## 👀 comando extra
+1. eliminar archivo de droplet `sudo rm nombre_del_archivo`
+2. eliminar archivo de pm2 `pm2 delete nombre_del_archivo`
+3. restar nginx `sudo systemctl restart nginx`, pm2 `pm2 restart`
+
+## CICD
+
+dar permisos 
+`chmod +x deploy.sh`
+./deploy.sh
+
 
