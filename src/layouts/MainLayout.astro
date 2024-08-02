@@ -1,11 +1,13 @@
 ---
-import { ViewTransitions } from "astro:transitions";
-// import SideBar from "../components/react-components/sidebar/SideBar"
-import '../styles/doc.css'
+import { ViewTransitions } from 'astro:transitions';
 
-const {title} = Astro.props;
+interface Props {
+  title: string;
+}
 
+const { title } = Astro.props;
 ---
+
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
@@ -15,11 +17,9 @@ const {title} = Astro.props;
 		<title>{title}</title>
     <ViewTransitions/>
 	</head>
-	<body>
-    <a href="/" id="btn-back">Regresar</a>
-		<main class="bg-gray-900 mb-10 max-w-5xl m-auto px-2 py-2">
+	<body class="bg-gray-900">
+		<main class="mb-10 max-w-5xl m-auto px-2 py-2">
       <slot/>
     </main>
 	</body>
 </html>
-

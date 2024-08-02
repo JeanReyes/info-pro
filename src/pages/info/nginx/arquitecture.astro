@@ -1,0 +1,15 @@
+---
+import ArquitectureImage from "../../../components/icons/ArquitectureImage.astro"
+import LayoutMd from '../../../layouts/LayoutMd.astro';
+---
+<LayoutMd frontmatter={{title: 'Arquitectura', author: 'Jean Reyes', description: 'arquitectura de nes-corp'}}>
+  <a transition:animate="slide" href="/info/nginx">Nginx</a> 
+  <div class="container-image">
+    <ArquitectureImage/>
+  </div>
+  <style>
+    .container-image {
+      width: 100%;
+    }
+  </style>
+</LayoutMd>

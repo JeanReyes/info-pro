@@ -1,0 +1,218 @@
+---
+title: Nginx
+author: jean-reyes
+description: Instrucciones básicas para configurar nginx
+image: 'images/nginx.webp'
+# tags: [JavaScript, ES6, Programming]
+---
+
+# {frontmatter.title}
+
+
+Crear archivo de configuración para el nuevo sitio dependiendo si es estático o con proxy-pass
+```sh 
+sudo nano /etc/nginx/sites-available/docs.nes-sgd.cl
+```
+ej estatico:
+```sh
+server {
+    listen 80;
+    server_name docs.nes-sgd.cl;
+
+    root /var/www/docs.nes-sgd.cl;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+ej proxy-pass
+v.1
+```sh
+server {
+    listen 80;
+    server_name docs.nes-sgd.cl;
+
+    location / {
+        proxy_pass http://localhost:4321; 
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+v.2 
+
+```sh 
+server {
+    listen 4320;
+    server_name _;
+
+    location / {
+        proxy_pass http://localhost:4321;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        send_timeout 60s;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+```
+
+Enlace simbolico del nuevo sitio 
+```sh 
+sudo ln -s /etc/nginx/sites-available/chimbarongo.nes-sgd.cl /etc/nginx/sites-enabled/
+o
+ln -s ../sites-available/docs.nes-sgd.cl .
+```
+
+Recargar 
+```sh 
+sudo systemctl start nginx
+sudo systemctl reload nginx
+sudo systemctl restart nginx
+sudo tail -f /var/log/nginx/error.log
+sudo nginx -t
+```
+
+##  Cargar nuevo sistio
+
+cd /var/www 
+```sh 
+mkdir chimbarongo.nes-sgd.cl
+```
+Trasladar proyecto desde MI máquina: 
+```sh 
+scp -r /Users/jereyesal/Desktop/PROJECT/var:www/ASTRO/pro-info root@64.227.2.167:/var/www/docs.nes-sgd.cl
+```
+
+clonar repositorio desde git:
+```sh
+sudo apt install git -y
+```
+si no, ejecutar docker compose
+
+SIEMPRE QUE SE AGREGUE UN NUEVO SITIO CON OTRO PUERTO ES IMPORTANTE VER EL FIREWALL
+
+##  Asociar registro DNS
+
+tener acceso a en donde compraste el dominio `nic.cl`
+En digitalOcean ir a networking y agregar dominio por defecto se agregarán los NS y estos ser registrados en nic.cl
+Crear un nuevo registro para el dominio tipo A: @ 'para que sea el dominio raiz', y crear los subdominios correspondientes que debes tener configurados en tu droplet, ver pasos anteriores
+
+
+##  Instalar app en node
+
+Instalar node o mvn para isntalar diferentes versiones de node 
+```sh
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+  source ~/.bashrc
+  nvm install --lts
+```
+
+## deploy.sh
+
+```sh
+APP_DIR="/var/www/docs.nes-sgd.cl/info-pro"
+APP_NAME="docs.nes-sgd.cl"
+REPO_BRANCH="master"
+
+# Navega al directorio de la aplicación
+cd $APP_DIR || { echo "Directory $APP_DIR not found. Exiting."; exit 1; }
+
+# Actualiza el repositorio
+echo "Updating repository..."
+git pull origin $REPO_BRANCH || { echo "Failed to pull from repository. Exiting."; exit 1; }
+
+# Instala dependencias
+echo "Installing dependencies..."
+npm install || { echo "npm install failed. Exiting."; exit 1; }
+
+# Construye la aplicación
+echo "Building application..."
+npm run build || { echo "npm run build failed. Exiting."; exit 1; }
+
+# Elimina el proceso PM2 si existe
+if pm2 list | grep -q "$APP_NAME"; then
+  echo "Deleting existing PM2 process $APP_NAME..."
+  pm2 delete $APP_NAME || { echo "Failed to delete PM2 process. Exiting."; exit 1; }
+fi
+
+# Inicia o reinicia la aplicación con PM2
+echo "Starting application with PM2..."
+pm2 start npm --name "$APP_NAME" -- run start || { echo "Failed to start application with PM2. Exiting."; exit 1; }
+
+# Guarda la configuración de PM2
+echo "Saving PM2 configuration..."
+pm2 save || { echo "Failed to save PM2 configuration. Exiting."; exit 1; }
+
+# Configura PM2 para iniciar al arranque del sistema (solo una vez)
+if [ ! -f "/etc/systemd/system/pm2-$USER.service" ]; then
+  echo "Configuring PM2 to start on boot..."
+  pm2 startup systemd -u $USER --hp /home/$USER || { echo "Failed to configure PM2 startup. Exiting."; exit 1; }
+  sudo env PATH=$PATH:/home/$USER/.nvm/versions/node/$(node -v)/bin pm2 startup systemd -u $USER --hp /home/$USER || { echo "Failed to configure PM2 environment for startup. Exiting."; exit 1; }
+fi
+
+echo "Deployment completed successfully!"
+```
+
+## Login e instalar nginx
+acceder por ssh a la IP del servidor 
+```sh 
+ssh root@your_droplet_ip
+ssh root@142.93.4.148
+d2359bf7e45983079930f564c9
+```
+actualizar paquetes 
+```sh 
+sudo apt update -y
+```
+instalar nginx 
+```sh 
+sudo apt install nginx -y
+```
+y permitir trafico 
+ ```sh 
+ sudo ufw allow 'Nginx Full'
+ ```
+
+## Opcional
+
+opcional se puede instalar `npm install pm2 -g` para manejar reinicios
+arrancar app `pm2 start npm --name "docs.nes-sgd.cl" -- run start`, debes etsar en la carpeta del proyecto
+
+para que sistema arranque `pm2 startup`, el comando proporciona un path target: `sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root`
+8. guardar estado actual `pm2 save`
+
+
+## comando extra
+eliminar archivo de droplet `sudo rm nombre_del_archivo`
+eliminar archivo de pm2 `pm2 delete nombre_del_archivo`
+restar nginx `sudo systemctl restart nginx`, pm2 `pm2 restart`
+
+## CICD
+```sh
+dar permisos 
+`chmod +x deploy.sh`
+./deploy.sh
+```
+
+

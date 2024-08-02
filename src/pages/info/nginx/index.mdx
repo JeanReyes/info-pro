@@ -1,13 +1,16 @@
 ---
-layout: ../../layouts/LayoutMd.astro
+layout: ../../../layouts/LayoutMd.astro
 title: NGINX
 author: Jean Reyes
 description: instrucciones para configurar servidor
 ---
 
+<a transition:animate="slide" href="/info/nginx/arquitecture">Ver arquitectura</a> 
+
 ## 👀 Config nginx
 
-crear archivo de configuración para nuevo sitio dependiendo si es estatico con con proxy-pass
+
+Crear archivo de configuración para el nuevo sitio dependiendo si es estático o con proxy-pass
 ```sh 
 sudo nano /etc/nginx/sites-available/docs.nes-sgd.cl
 ```
@@ -75,14 +78,14 @@ server {
 }
 ```
 
-2. crear enlace simbolico del nuevo sitio 
+2. Enlace simbolico del nuevo sitio 
 ```sh 
 sudo ln -s /etc/nginx/sites-available/chimbarongo.nes-sgd.cl /etc/nginx/sites-enabled/
 o
 ln -s ../sites-available/docs.nes-sgd.cl .
 ```
 
-3. recargar 
+3. Recargar 
 ```sh 
 sudo systemctl start nginx
 sudo systemctl reload nginx
@@ -97,7 +100,7 @@ sudo nginx -t
 ```sh 
 mkdir chimbarongo.nes-sgd.cl
 ```
-trasladar proyecto desde MI maquina: 
+Trasladar proyecto desde MI máquina: 
 ```sh 
 scp -r /Users/jereyesal/Desktop/PROJECT/var:www/ASTRO/pro-info root@64.227.2.167:/var/www/docs.nes-sgd.cl
 ```
@@ -107,28 +110,6 @@ scp -r /Users/jereyesal/Desktop/PROJECT/var:www/ASTRO/pro-info root@64.227.2.167
 sudo apt install git -y
 ```
 si no, ejecutar docker compose
-
-# 👀 Resumen del Proceso Completo
-```text
-    Estructura de directorios:
-        /etc/nginx/nginx.conf
-        /etc/nginx/sites-available/
-        /etc/nginx/sites-enabled/
-        /var/www/example.com
-        /var/www/sub.example.com
-
-    Configuración de archivos:
-        nginx.conf incluye sites-enabled/*
-        Archivos de configuración en sites-available/
-        Enlaces simbólicos en sites-enabled/
-
-    Pasos de configuración:
-        Crear directorios y asignar permisos
-        Crear archivos HTML de ejemplo
-        Configurar archivos de sitios virtuales
-        Habilitar los sitios mediante enlaces simbólicos
-        Verificar y recargar Nginx
-```
 
 ### SIEMPRE QUE SE AGREGUE UN NUEVO SITIO CON OTRO PUERTO ES IMPORTANTE VER EL FIREWALL
 
@@ -141,23 +122,16 @@ si no, ejecutar docker compose
 
 ## 👀  Instalar app en node
 
-1. instalar node o mvn para isntalar diferentes versiones de node 
+1. Instalar node o mvn para isntalar diferentes versiones de node 
 ```sh
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
   source ~/.bashrc
   nvm install --lts
 ```
 
-2. copiar el directorio del proyecto siguiendo los pasos de **mas arriba** para copiar desde mi maquina al droplet `/var/www/example.com`,
-    una vez se copian los archivos ejecutar en el proyecto `npm install`
-
-3. ejecutar `npm run build`, para compilar la app,
-
-4. actualizar archivos nginx.conf en 'sites-available', seguir pasos de arriba
-
 ## deploy.sh
 
-# Define variables
+```sh
 APP_DIR="/var/www/docs.nes-sgd.cl/info-pro"
 APP_NAME="docs.nes-sgd.cl"
 REPO_BRANCH="master"
@@ -199,43 +173,7 @@ if [ ! -f "/etc/systemd/system/pm2-$USER.service" ]; then
 fi
 
 echo "Deployment completed successfully!"
-
-## nginx proxy manager
-
-version: '3.8'
-services:
-  app:
-    image: 'jc21/nginx-proxy-manager:latest'
-    restart: unless-stopped
-    ports:
-      - '80:80' # Public HTTP Port
-      - '443:443' # Public HTTPS Port
-      - '81:81' # Admin Web Port
-    environment:
-      # Mysql/Maria connection parameters:
-      DB_MYSQL_HOST: "db"
-      DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "npm"
-      DB_MYSQL_PASSWORD: "npm"
-      DB_MYSQL_NAME: "npm"
-    volumes:
-      - ./data:/data
-      - ./letsencrypt:/etc/letsencrypt
-    depends_on:
-      - db
-
-  db:
-    image: 'jc21/mariadb-aria:latest'
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: 'npm'
-      MYSQL_DATABASE: 'npm'
-      MYSQL_USER: 'npm'
-      MYSQL_PASSWORD: 'npm'
-      MARIADB_AUTO_UPGRADE: '1'
-    volumes:
-      - ./mysql:/var/lib/mysql
-
+```
 
 ## 👀 Login e instalar nginx
 
@@ -273,9 +211,10 @@ sudo apt install nginx -y
 3. restar nginx `sudo systemctl restart nginx`, pm2 `pm2 restart`
 
 ## CICD
-
+```sh
 dar permisos 
 `chmod +x deploy.sh`
 ./deploy.sh
+```
 
 

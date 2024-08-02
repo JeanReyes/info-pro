@@ -1,0 +1,9 @@
+services:
+  astro-app:
+    container_name: docs-nes
+    image: jean1991/docs-nes:1.0.0
+    # volumes:
+    #   - ./:/app
+    restart: always
+    ports:
+      - 4321:4321
